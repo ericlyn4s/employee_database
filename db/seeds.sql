@@ -1,3 +1,4 @@
+!-- Insert five departments into the department table
 INSERT INTO department (name)
 VALUES
     ('Engineering'),
@@ -6,7 +7,7 @@ VALUES
     ('Sales'),
     ('Service');
 
-
+!-- Insert eight roles into the role table
 INSERT INTO role (title, salary, department_id)
 VALUES
     ('Sales Lead', 100000, 4),
@@ -18,6 +19,7 @@ VALUES
     ('Legal Team Lead', 250000, 3),
     ('Lawyer', 190000, 3);
 
+!-- Insert eight employees into the employee table
 INSERT INTO employee (first_name, last_name, role_id, manager_id)
 VALUES
     ('John', 'Doe', 1, null),

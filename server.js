@@ -13,8 +13,9 @@ const db = mysql.createConnection(
       database: 'employees_db'
     },
     console.log(`Connected to the employees database.`)
-);
+); 
 
+// Initial question that is asked on startup
 const initialQuestion = [
     {
         type: 'list',
@@ -24,6 +25,7 @@ const initialQuestion = [
     },
 ];
 
+// Take the user input from the initial question and feed it into a large decision tree
 function queryType(data) {
     const choice = data.actions;
     
@@ -87,6 +89,7 @@ function queryType(data) {
                 message: 'What is the department id?',
             },
              ])
+             // Take user input and input it into a mysql query
             .then((data) => {
                  db.query('INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)', [data.title, data.salary, data.department], (error, result) => {
                      if (error) {
@@ -122,6 +125,7 @@ function queryType(data) {
                 message: "What is the employee's manager's id? (Input null if no manager)",
             },           
              ])
+             // Take user input and input it into a mysql query
             .then((data) => {
                  db.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.first, data.last, data.role, data.manager], (error, result) => {
                      if (error) {
@@ -134,30 +138,32 @@ function queryType(data) {
             break;
             case 'Update an employee role':
                 // Prompt the user for the necessary details to add an employee
-                db.query('SELECT name FROM employees')
-                .then(results => {
-                const employeeNames = results.map(row => row.name);
-
-                inquirer
-                .prompt([
-                 {
-                    type: 'list',
-                    message: 'Whose role would you like to update?',
-                    name: 'employees',
-                    choices: employeeNames
-                 },
-                       
-                 ])
-                .then((data) => {
+                const employeeNames = db.query('SELECT name FROM employees')
+                    .then((result) => result[0])
+                    .then((rows) => rows.map((row) => row.category));
+                    inquirer
+                    .prompt([
+                    {
+                        type: 'list',
+                        message: 'Whose role would you like to update?',
+                        name: 'employees',
+                        choices: employeeNames,
+                    },
+                    {
+                        type: 'list',
+                        message: 'Which role do you want to assign the selected employee?',
+                        name: 'role',
+                        choices: employeeNames,
+                    },
+                    ])
+                    .then((data) => {
+                        // I need to update this, then revert back to what would we like to do
                      console.log(data.employees);
-                         }
-                )
-
-
-                    })
-                break;    
-                }
+                    })  
+                break;   
+                } 
 };
+
             
                         
 
@@ -168,4 +174,5 @@ function init() {
     .then(data => queryType(data));
 };
 
+// Start the init function at application startup
 init();
