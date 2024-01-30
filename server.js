@@ -1,14 +1,6 @@
 // Import inquirer, express and mysql modules
 const inquirer = require('inquirer');
-const mysql = require('mysql2/promise');
-const express = require('express');
-
-const PORT = process.env.PORT || 3001;
-const app = express();
-
-// Express middleware
-app.use(express.urlencoded({ extended: false }));
-app.use(express.json());
+const mysql = require('mysql2');
 
 // Connect to database
 const db = mysql.createConnection(
@@ -38,7 +30,18 @@ function queryType(data) {
     // Case statement based off initial user input
     switch (choice) {
         case 'View all departments':
+            // Simple select * from departments table
             db.query('SELECT * FROM department', function (err, results) {
+                console.log(results);
+              });
+        case 'View all roles':
+            // Query role table for all values
+            db.query('SELECT r.id, r.title, d.name, r.salary FROM role AS r JOIN department AS d ON r.department_id = d.id', function (err, results) {
+                console.log(results);
+              });
+        case 'View all employees':
+            // Query employee table for all values
+            db.query('SELECT e.id, e.first_name, e.last_name, r.title, d.name AS department, r.salary, e.manager_id FROM employee AS e JOIN role AS r ON e.role_id = r.id JOIN department AS d ON r.department_id = d.id', function (err, results) {
                 console.log(results);
               });
     };
