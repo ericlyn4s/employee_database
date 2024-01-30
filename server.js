@@ -138,9 +138,7 @@ function queryType(data) {
             break;
             case 'Update an employee role':
                 // Prompt the user for the necessary details to add an employee
-                const employeeNames = db.query('SELECT name FROM employees')
-                    .then((result) => result[0])
-                    .then((rows) => rows.map((row) => row.category));
+                const employeeNames = db.query('SELECT name FROM employee')
                     inquirer
                     .prompt([
                     {
