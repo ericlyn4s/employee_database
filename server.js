@@ -15,17 +15,12 @@ const db = mysql.createConnection(
     console.log(`Connected to the employees database.`)
 );
 
-const questions = [
+const initialQuestion = [
     {
         type: 'list',
         message: 'What would you like to do?',
         name: 'actions',
         choices: ['View all departments', 'View all roles', 'View all employees', 'Add a department', 'Add a role', 'Add an employee', 'Update an employee role'],
-    },
-    {
-        type: 'input',
-        message: 'give input',
-        name: 'yes',
     },
 ];
 
@@ -36,7 +31,7 @@ function queryType(data) {
     switch (choice) {
         case 'View all departments':
             // Simple select * from departments table
-            db.query('SELECT * Exclude (index) FROM department' , function (err, results) {
+            db.query('SELECT * FROM department' , function (err, results) {
                 console.table(results);
               });
             break;
@@ -53,13 +48,123 @@ function queryType(data) {
               });
             break;
         case 'Add a department':
+            // Prompt the user for the new department name
+            inquirer
+               .prompt([
+                {
+                    type: 'input',
+                    name: 'department',
+                    message: 'What is the name of the department?',
+                },
+                ])
+               .then((data) => {
+                    db.query('INSERT INTO department (name) VALUES (?)', [data.department], (error, result) => {
+                        if (error) {
+                            console.error('Error inserting record:', error);
+                        } else {
+                            console.log(`${data.department} inserted successfully!`);
+                        }
+                    });
+               });
+            break;
+        case 'Add a role':
+            // Prompt the user for the necessary details to add a role
+            inquirer
+            .prompt([
+             {
+                 type: 'input',
+                 name: 'title',
+                 message: 'What is the name of the role?',
+             },
+             {
+                type: 'input',
+                name: 'salary',
+                message: 'What is the salary?',
+            },
+            {
+                type: 'input',
+                name: 'department',
+                message: 'What is the department id?',
+            },
+             ])
+            .then((data) => {
+                 db.query('INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)', [data.title, data.salary, data.department], (error, result) => {
+                     if (error) {
+                         console.error('Error inserting record:', error);
+                     } else {
+                         console.log(`Role added successfully!`);
+                     }
+                 });
+                });
+            break;
+        case 'Add an employee':
+            // Prompt the user for the necessary details to add an employee
+            inquirer
+            .prompt([
+             {
+                 type: 'input',
+                 name: 'first',
+                 message: 'What is the first name of the employee?',
+             },
+             {
+                type: 'input',
+                name: 'last',
+                message: 'What is the last name of the employee?',
+            },
+            {
+                type: 'input',
+                name: 'role',
+                message: "What is the employee's role id?",
+            },
+            {
+                type: 'input',
+                name: 'manager',
+                message: "What is the employee's manager's id? (Input null if no manager)",
+            },           
+             ])
+            .then((data) => {
+                 db.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.first, data.last, data.role, data.manager], (error, result) => {
+                     if (error) {
+                         console.error('Error inserting record:', error);
+                     } else {
+                         console.log(`Employee added successfully!`);
+                     }
+                 });
+                });
+            break;
+            case 'Update an employee role':
+                // Prompt the user for the necessary details to add an employee
+                db.query('SELECT name FROM employees')
+                .then(results => {
+                const employeeNames = results.map(row => row.name);
 
-    };
-}
+                inquirer
+                .prompt([
+                 {
+                    type: 'list',
+                    message: 'Whose role would you like to update?',
+                    name: 'employees',
+                    choices: employeeNames
+                 },
+                       
+                 ])
+                .then((data) => {
+                     console.log(data.employees);
+                         }
+                )
+
+
+                    })
+                break;    
+                }
+};
+            
+                        
+
  // Create a function to execute user selection
 function init() {
     inquirer
-    .prompt(questions[0])
+    .prompt(initialQuestion)
     .then(data => queryType(data));
 };
 
