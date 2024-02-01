@@ -15,7 +15,7 @@ const db = mysql.createConnection(
     console.log(`Connected to the employees database.`)
 ); 
 
-// Initial question that is asked on startup
+// Initial question that is asked on startup (called at the bottom of this file)
 const initialQuestion = [
     {
         type: 'list',
@@ -29,8 +29,9 @@ const initialQuestion = [
 function queryType(data) {
     const choice = data.actions;
     
-    // Case statement based off initial user input
+    // Case statement based off initial user choice
     switch (choice) {
+        // Case 1: All departments displayed
         case 'View all departments':
             // Simple select * from departments table
             db.query('SELECT * FROM department' , function (err, results) {
@@ -38,20 +39,23 @@ function queryType(data) {
                 init();
               });
             break;
+        // Case 2: All roles displayed
         case 'View all roles':
-            // Query role table for all values
+            // Query role table for all values, join to department table to pull in department name
             db.query('SELECT r.id, r.title, d.name AS department, r.salary FROM role AS r JOIN department AS d ON r.department_id = d.id', function (err, results) {
                 console.table(results);
                 init();
               });
             break;
+        // Case 3: All employees displayed
         case 'View all employees':
-            // Query employee table for all values, joining three additional tables to pull in the proper columns
+            // Query employee table for all values, joining the two additional tables to pull in role title, department name, role salary and manager name
             db.query('SELECT e.id, e.first_name, e.last_name, r.title, d.name AS department, r.salary, COALESCE(CONCAT(f.first_name," ",f.last_name), "null") AS manager FROM employee AS e JOIN role AS r ON e.role_id = r.id JOIN department AS d ON r.department_id = d.id LEFT JOIN employee AS f ON e.manager_id = f.id ORDER BY e.id', function (err, results) {
                 console.table(results);
                 init();
               });
             break;
+        // Case 4: Add a department to the database
         case 'Add a department':
             // Prompt the user for the new department name
             inquirer
@@ -62,9 +66,11 @@ function queryType(data) {
                     message: 'What is the name of the department?',
                 },
                 ])
+                // Pass this input in the department table
                .then((data) => {
                     db.query('INSERT INTO department (name) VALUES (?)', [data.department], (error, result) => {
                         if (error) {
+                            // catch and describe errors
                             console.error('Error inserting record:', error);
                             init();
                         } else {
@@ -74,9 +80,11 @@ function queryType(data) {
                     });
                });
             break;
+        // Case 5: Add a role to the database
         case 'Add a role':
             // Prompt the user for the necessary details to add a role
             let departmentNames = [];
+            // Pull existing department names into a list
             db.query('SELECT name from department', (error, results) => {
                 if (error) {
                     throw error;
@@ -103,6 +111,7 @@ function queryType(data) {
                 type: 'list',
                 name: 'department',
                 message: 'What is the department?',
+                // Existing department names populate a list for user selection
                 choices: departmentNames,
             },
              ])
@@ -120,9 +129,12 @@ function queryType(data) {
                 });
             });   
             break;
+        // Case 6: Add an employee to database
         case 'Add an employee':
+            // Create two new variables to hold existing role and employee values
             let roleId = [];
             let employeeName = [];
+            // Pull existing role titles and add to roleID array
             db.query('SELECT title FROM role ', (error, results) => {
                 if (error) {
                     throw error;
@@ -133,6 +145,7 @@ function queryType(data) {
                         value: i+1,
                     })
                 })
+                // Pull existing employee names and add to employeeName array
                 db.query('SELECT CONCAT(first_name," ",last_name) AS name FROM employee', (error, results) => {
                     if (error) {
                         throw error;
@@ -143,6 +156,7 @@ function queryType(data) {
                             value: i+1,
                         })
                     })
+                    // Add a 'none' option in situations where new employee will not have a manager
                     employeeName.unshift({
                         name: "None",
                         value: 0,
@@ -164,17 +178,20 @@ function queryType(data) {
                 type: 'list',
                 name: 'role',
                 message: 'What is the role?',
+                // Existing role titles populate choices
                 choices: roleId,
             },
             {
                 type: 'list',
                 name: 'manager',
                 message: "Who is this employee's manager?",
+                // Existing employee names populate choices
                 choices: employeeName,
             },           
              ])
              // Take user input and input it into a mysql query
             .then((data) => {
+                // If user selected manager as 'none', run an insert query that puts 'null' as manager
                 if (data.manager === 0) {
                     db.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, null)', [data.first, data.last, data.role], (error, result) => {
                      if (error) {
@@ -185,6 +202,7 @@ function queryType(data) {
                          init();
                      }
                  });
+                 // If user selected an employee as a manager, run an insert query that utilizes the four previous answers to make an insert function
                 } else {
                  db.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.first, data.last, data.role, data.manager], (error, result) => {
                      if (error) {
@@ -200,10 +218,12 @@ function queryType(data) {
             });
         });
             break;
+            // Case 7: Update an existing employee's role
             case 'Update an employee role':
-                // Prompt the user for the necessary details to add an employee
+                // Create empty arrays for all roles and employees
                 let role2 = [];
                 let employeeName2 = [];
+                // Pull all existing roles into role2 array
                 db.query('SELECT title FROM role', (error, results) => {
                 if (error) {
                     throw error;
@@ -214,6 +234,7 @@ function queryType(data) {
                         value: i+1,
                     })
                 })
+                // Pull all employee names into employeeName2 array
                 db.query('SELECT CONCAT(first_name," ",last_name) AS name FROM employee', (error, results) => {
                     if (error) {
                         throw error;
@@ -230,12 +251,14 @@ function queryType(data) {
                         type: 'list',
                         message: 'Whose role would you like to update?',
                         name: 'employees',
+                        // Populate employee names as choices
                         choices: employeeName2,
                     },
                     {
                         type: 'list',
                         message: 'Which role do you want to assign the selected employee?',
                         name: 'role',
+                        // Populate existing role names as choices
                         choices: role2,
                     },
                     ])
@@ -255,6 +278,7 @@ function queryType(data) {
                });
            });
             break;   
+            // Default to an exit from the program
             default: 
                 process.exit();
             } 
