@@ -47,7 +47,7 @@ function queryType(data) {
             break;
         case 'View all employees':
             // Query employee table for all values, joining three additional tables to pull in the proper columns
-            db.query('SELECT e.id, e.first_name, e.last_name, r.title, d.name AS department, r.salary, COALESCE(CONCAT(f.first_name," ",f.last_name), "null") AS manager FROM employee AS e JOIN role AS r ON e.role_id = r.id JOIN department AS d ON r.department_id = d.id LEFT JOIN employee AS f ON e.manager_id = f.id', function (err, results) {
+            db.query('SELECT e.id, e.first_name, e.last_name, r.title, d.name AS department, r.salary, COALESCE(CONCAT(f.first_name," ",f.last_name), "null") AS manager FROM employee AS e JOIN role AS r ON e.role_id = r.id JOIN department AS d ON r.department_id = d.id LEFT JOIN employee AS f ON e.manager_id = f.id ORDER BY e.id', function (err, results) {
                 console.table(results);
                 init();
               });
@@ -143,6 +143,10 @@ function queryType(data) {
                             value: i+1,
                         })
                     })
+                    employeeName.unshift({
+                        name: "None",
+                        value: 0,
+                    })
             // Prompt the user for the necessary details to add an employee
             inquirer
             .prompt([
@@ -165,12 +169,23 @@ function queryType(data) {
             {
                 type: 'list',
                 name: 'manager',
-                message: "What is the employee's manager's id?",
+                message: "Who is this employee's manager?",
                 choices: employeeName,
             },           
              ])
              // Take user input and input it into a mysql query
             .then((data) => {
+                if (data.manager === 0) {
+                    db.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, null)', [data.first, data.last, data.role], (error, result) => {
+                     if (error) {
+                         console.error('Error inserting record:', error);
+                         init();
+                     } else {
+                         console.log(`Employee added successfully!`);
+                         init();
+                     }
+                 });
+                } else {
                  db.query('INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)', [data.first, data.last, data.role, data.manager], (error, result) => {
                      if (error) {
                          console.error('Error inserting record:', error);
@@ -180,41 +195,70 @@ function queryType(data) {
                          init();
                      }
                  });
+                }
                 });
             });
         });
             break;
             case 'Update an employee role':
                 // Prompt the user for the necessary details to add an employee
-                const employeeNames = db.query('SELECT name FROM employee')
+                let role2 = [];
+                let employeeName2 = [];
+                db.query('SELECT title FROM role', (error, results) => {
+                if (error) {
+                    throw error;
+                } 
+                results.forEach((role, i) => {
+                    role2.push({
+                        name: role.title,
+                        value: i+1,
+                    })
+                })
+                db.query('SELECT CONCAT(first_name," ",last_name) AS name FROM employee', (error, results) => {
+                    if (error) {
+                        throw error;
+                    } 
+                    results.forEach((employee, i) => {
+                        employeeName2.push({
+                            name: employee.name,
+                            value: i+1,
+                        })
+                    })
                     inquirer
                     .prompt([
                     {
                         type: 'list',
                         message: 'Whose role would you like to update?',
                         name: 'employees',
-                        choices: employeeNames,
+                        choices: employeeName2,
                     },
                     {
                         type: 'list',
                         message: 'Which role do you want to assign the selected employee?',
                         name: 'role',
-                        choices: employeeNames,
+                        choices: role2,
                     },
                     ])
                     .then((data) => {
                         // I need to update this, then revert back to what would we like to do
-                     console.log(data.employees);
-                     init();
-                    })  
-                break;   
-                default: 
-                    process.exit();
-                } 
+                        db.query('UPDATE employee SET role_id = ? WHERE id = ?', [data.role, data.employees], (error, result) => {
+                            if (error) {
+                                console.error('Error inserting record:', error);
+                                init();
+                            } else {
+                                console.log(`Employee updated successfully!`);
+                                init();
+                            }
+                        });
+                    }
+                );
+               });
+           });
+            break;   
+            default: 
+                process.exit();
+            } 
 };
-
-            
-                        
 
  // Create a function to execute user selection
 function init() {
