@@ -40,7 +40,7 @@ function queryType(data) {
             break;
         case 'View all roles':
             // Query role table for all values
-            db.query('SELECT r.id, r.title, d.name, r.salary FROM role AS r JOIN department AS d ON r.department_id = d.id', function (err, results) {
+            db.query('SELECT r.id, r.title, d.name AS department, r.salary FROM role AS r JOIN department AS d ON r.department_id = d.id', function (err, results) {
                 console.table(results);
                 init();
               });
